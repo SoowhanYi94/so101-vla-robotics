@@ -1,0 +1,13 @@
+so101_vla_policy:
+  ros__parameters:
+    instruction: pick and place the object
+
+    image_topic: /so101/camera/rgb
+    joint_state_topic: /so101/joint_states
+    action_topic: /so101/policy_action
+
+    action_frequency_hz: 30.0
+    observation_timeout_seconds: 0.5
+    maximum_action_step: 0.02
+
+    device: auto

@@ -1,0 +1,83 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Python environments
+.venv/
+venv/
+env/
+
+# Environment variables and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# ROS 2 generated directories
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# Colcon and CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# Training datasets
+datasets/raw/*
+datasets/processed/*
+!datasets/raw/.gitkeep
+!datasets/processed/.gitkeep
+
+# Model artifacts
+models/checkpoints/*
+models/exported/*
+!models/checkpoints/.gitkeep
+!models/exported/.gitkeep
+
+# Training logs
+runs/
+wandb/
+lightning_logs/
+tensorboard/
+*.tfevents.*
+
+# Isaac Sim and Omniverse caches
+simulation/**/__pycache__/
+simulation/**/.cache/
+simulation/**/cache/
+simulation/**/logs/
+simulation/**/outputs/
+kit/cache/
+kit/logs/
+
+# Native build outputs
+*.o
+*.so
+*.a
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+# Operating-system files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.log

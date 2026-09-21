@@ -1,0 +1,23 @@
+so101_action_controller:
+  ros__parameters:
+    control_mode: position
+
+    control_rate_hz: 100.0
+    state_timeout_seconds: 0.5
+    action_timeout_seconds: 0.5
+
+    maximum_velocities:
+      - 0.50
+      - 0.50
+      - 0.50
+      - 0.70
+      - 0.70
+      - 0.70
+
+    maximum_efforts:
+      - 0.30
+      - 0.30
+      - 0.30
+      - 0.20
+      - 0.20
+      - 0.15
