@@ -5,8 +5,33 @@ leader-arm demonstrations, dataset collection, learned policies, and force-adapt
 
 The current system runs the robot in Isaac Sim, bridges joint and camera data to ROS 2, and
 uses a safety controller between policies and the simulated robot.
+## Architecture
 
-## Current status
+```mermaid
+flowchart TD
+    A["Python planner, VLA, or SpaceMouse"] --> B["C++ kinematics and trajectory layer"]
+    B -->|/so101/policy_action| C["C++ safety controller"]
+    C -->|/so101/joint_commands| D["Isaac Sim or physical SO-101"]
+    D -->|State and camera observations| A
+    D -->|/so101/joint_states| B
+```
+## Current research status
+
+The project currently supports an end-to-end simulation and learned-policy
+pipeline:
+
+```text
+Isaac Sim camera and joint state
+                ↓
+          Custom SmallVLA
+                ↓
+       Predicted joint actions
+                ↓
+       C++ safety controller
+                ↓
+        Simulated SO-101 arm
+
+````
 
 - SO-101 USD loads and runs in Isaac Sim.
 - Joint state and joint command bridges are working.
@@ -19,16 +44,6 @@ uses a safety controller between policies and the simulated robot.
 - Dataset recording, C++ kinematics, SpaceMouse teleoperation, and learned VLA policies are the
   next development stages.
 
-## Architecture
-
-```mermaid
-flowchart TD
-    A["Python planner, VLA, or SpaceMouse"] --> B["C++ kinematics and trajectory layer"]
-    B -->|/so101/policy_action| C["C++ safety controller"]
-    C -->|/so101/joint_commands| D["Isaac Sim or physical SO-101"]
-    D -->|State and camera observations| A
-    D -->|/so101/joint_states| B
-```
 
 Python owns high-level planning, dataset processing, model training, and VLA inference. C++
 owns forward and inverse kinematics, trajectory generation, limits, validation, and the
@@ -282,47 +297,62 @@ Training and robot operation are separate phases. Isaac Sim is normally closed d
 training runs. At runtime, the trained checkpoint runs under `torch.inference_mode()` and sends
 action chunks to the C++ command path. The controller remains responsive if inference is late.
 
-## Development hardware
-
-Current system:
-
-```text
-CPU:         Intel Core i9-13900K
-Motherboard: MSI PRO Z790-A WIFI DDR5
-GPU:         NVIDIA GeForce RTX 4070
-Memory:      32 GB DDR5
-Storage:     Samsung 980 PRO 1 TB NVMe
-Power:       1000 W PSU
-```
-
-This system is the development baseline. Hardware is upgraded only after measurements identify
-a real bottleneck. Isaac Sim and model training run separately; only optimized VLA inference is
-expected to run alongside simulation.
-
-Monitor system and GPU memory with:
-
-```bash
-free -h
-nvidia-smi --query-gpu=memory.used,memory.total,utilization.gpu --format=csv
-```
-
-Upgrade triggers are sustained swapping, insufficient dataset storage, a model that cannot fit
-in VRAM, or unacceptable simulation performance during inference. The preferred eventual path
-is additional NVMe storage, 96–128 GB RAM when pricing is reasonable, and an RTX 5090 only near
-its standard retail price. The CPU and motherboard do not currently need replacement.
-
 ## Next milestones
 
-1. Create the C++ `so101_kinematics` package and robot model.
-2. Implement and validate SO-101 forward kinematics against Isaac Sim.
-3. Implement inverse kinematics with joint limits and continuity constraints.
-4. Connect SpaceMouse input to the IK target.
-5. Add synchronized episode recording for images, state, and actions.
-6. Collect scripted and teleoperated simulation demonstrations.
-7. Implement and test the custom transformer components.
-8. Train and evaluate a baseline action-chunking imitation policy.
-9. Add physical leader/follower calibration and real-robot recording.
-10. Introduce force sensing and effort control after position-based VLA behavior is stable.
+1. ~~Create the C++ `robot_kinematics` package and SO-101 robot model.~~  
+   **Status:** Implemented and building successfully.
+
+2. ~~Implement and validate SO-101 forward kinematics against Isaac Sim.~~  
+   **Status:** Implemented; numerical validation against Isaac Sim remains.
+
+3. ~~Implement inverse kinematics with joint limits and continuity constraints.~~  
+   **Status:** Implemented; closed-loop validation and tuning remain.
+
+4. Connect SpaceMouse input to the IK target.  
+   **Status:** Planned for manual simulation demonstrations.
+
+5. Add synchronized episode recording for images, states, and actions.  
+   **Status:** Next major data-pipeline milestone.
+
+6. Collect scripted and teleoperated simulation demonstrations.  
+   **Status:** Pending the recorder and reliable scripted task expert.
+
+7. ~~Implement and test the custom transformer components.~~  
+   **Status:** Completed. The project includes custom attention, transformer
+   blocks, embeddings, normalization, multimodal fusion, and action decoding.
+
+8. ~~Train and evaluate a baseline action-chunking imitation policy.~~  
+   **Status:** Completed using a public SO-100 LeRobot dataset. The ten-epoch
+   checkpoint achieved a validation MAE of `0.053084 rad` or `3.042 degrees`.
+
+9. ~~Integrate the trained VLA checkpoint with the SO-101 simulation.~~  
+   **Status:** Completed. The model receives camera and joint observations,
+   performs CUDA inference, and publishes joint actions through ROS 2.
+
+10. Add disabled-by-default policy publishing and controlled single-action
+    testing.  
+    **Status:** Required before further continuous closed-loop evaluation.
+
+11. Validate SO-100-to-SO-101 joint signs, offsets, limits, and gripper mapping.  
+    **Status:** Required because the initial checkpoint was trained using an
+    SO-100 follower dataset.
+
+12. Generate an SO-101 dataset directly from the Isaac Sim environment.  
+    **Status:** Planned using scripted or IK-based demonstrations followed by
+    SpaceMouse teleoperation.
+
+13. Fine-tune the existing checkpoint and train an SO-101 model from scratch.  
+    **Status:** Both approaches will be evaluated to measure the value of
+    cross-robot transfer.
+
+14. Evaluate closed-loop pick-and-place success under changes in object
+    position, camera pose, lighting, and initial robot configuration.
+
+15. Add physical leader/follower calibration and real-robot recording after the
+    simulation policy is stable.
+
+16. Introduce force sensing and effort control after position-based VLA behavior
+    is reliable.
 
 ## Safety notes
 
@@ -330,5 +360,14 @@ its standard retail price. The CPU and motherboard do not currently need replace
 - Keep policy actions behind the ROS 2 safety controller.
 - Reject stale, malformed, non-finite, or incorrectly ordered commands.
 - Use command timeouts and a safe hold behavior.
-- Validate simulation-to-real joint signs, offsets, limits, and gripper mapping before motion.
+- Keep learned-policy action publishing disabled by default.
+- Begin with inference-only testing before sending commands to the robot.
+- Execute one bounded action before enabling a complete action chunk.
+- Limit commanded changes relative to the latest measured joint state.
+- Require recent camera and joint-state observations before inference.
+- Validate SO-100-to-SO-101 joint signs, offsets, limits, units, and gripper
+  mapping before motion.
+- Validate closed-loop behavior in simulation before physical deployment.
 - Keep an accessible emergency stop when testing physical hardware.
+- Do not enable direct effort control without verified dynamics compensation,
+  effort limits, and a suitable high-rate controller.

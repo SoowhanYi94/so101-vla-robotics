@@ -1,3 +1,4 @@
+from email.mime import message
 import time
 from pathlib import Path
 
@@ -6,7 +7,6 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import Image, JointState
-from std_msgs.msg import Float64MultiArray
 
 from so101_policies.inference.checkpoint_loader import (
     load_checkpoint,
@@ -133,7 +133,7 @@ class PolicyNode(Node):
         )
 
         self.action_publisher = self.create_publisher(
-            Float64MultiArray,
+            JointState,
             action_topic,
             10,
         )
@@ -303,9 +303,15 @@ class PolicyNode(Node):
             lower_bound,
         )
 
-        message = Float64MultiArray()
-        message.data = safe_action.tolist()
+        message = JointState()
 
+        message.header.stamp = (
+            self.get_clock().now().to_msg()
+        )
+        
+        message.name = self.JOINT_NAMES
+        message.position = safe_action.tolist()
+        
         self.action_publisher.publish(message)
 
         self.action_index += 1
