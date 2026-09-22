@@ -380,31 +380,17 @@ representation.
 For an input token matrix \(X\), the attention layer produces queries, keys,
 and values:
 
-\[
-Q=XW_Q,\qquad K=XW_K,\qquad V=XW_V
-\]
+\[Q=XW_Q,\qquad K=XW_K,\qquad V=XW_V\]
 
 Scaled dot-product attention is:
 
-\[
-\operatorname{Attention}(Q,K,V)
-=
-\operatorname{softmax}
-\left(
-\frac{QK^\top}{\sqrt{d_h}}
-\right)V
-\]
+\[\operatorname{Attention}(Q,K,V)=\operatorname{softmax}\left(\frac{QK^\top}{\sqrt{d_h}}\right)V\]
 
 where \(d_h\) is the dimension of one attention head.
 
 Multiple heads learn different relationships simultaneously:
 
-\[
-\operatorname{MultiHead}(X)
-=
-\operatorname{Concat}
-(\text{head}_1,\ldots,\text{head}_h)W_O
-\]
+\[\operatorname{MultiHead}(X)=\operatorname{Concat}(\text{head}_1,\ldots,\text{head}_h)W_O\]
 
 In this model, attention can associate:
 
@@ -497,11 +483,7 @@ models/primitives/dropout.py
 
 The transformer encoder applies multiple blocks sequentially:
 
-\[
-X^{(l+1)}
-=
-\operatorname{Block}^{(l)}(X^{(l)})
-\]
+\[X^{(l+1)}=\operatorname{Block}^{(l)}(X^{(l)})\]
 
 After the final block, the first token is selected:
 
@@ -578,26 +560,14 @@ again.
 Robot states and actions are normalized using statistics computed from the
 training dataset:
 
-\[
-\tilde{s}
-=
-\frac{s-\mu_s}{\sigma_s}
-\]
+\[\tilde{s}=\frac{s-\mu_s}{\sigma_s}\]
 
-\[
-\tilde{a}
-=
-\frac{a-\mu_a}{\sigma_a}
-\]
+\[\tilde{a}=\frac{a-\mu_a}{\sigma_a}\]
 
 The model operates in normalized space. Predictions are converted back into
 robot units using:
 
-\[
-\hat{a}
-=
-\tilde{a}\sigma_a+\mu_a
-\]
+\[\hat{a}=\tilde{a}\sigma_a+\mu_a\]
 
 Implementation:
 
@@ -623,14 +593,7 @@ robot_type: so100_follower
 The adapter converts recorded values from degrees to radians and can apply
 joint signs and offsets:
 
-\[
-q_{\text{adapted}}
-=
-(q_{\text{dataset}} \cdot \text{unit scale})
-\odot \text{joint signs}
-+
-\text{joint offsets}
-\]
+\[q_{\text{adapted}}=(q_{\text{dataset}} \cdot \text{unit scale})\odot \text{joint signs}+\text{joint offsets}\]
 
 Implementation:
 
@@ -660,19 +623,7 @@ error.
 
 For valid action elements:
 
-\[
-\mathcal{L}
-=
-\frac{
-\sum_{b,k,j}
-M_{b,k}
-\left(
-\hat{A}_{b,k,j}-A_{b,k,j}
-\right)^2
-}{
-D_a \sum_{b,k}M_{b,k}
-}
-\]
+\[\mathcal{L}=\frac{\sum_{b,k,j}M_{b,k}\left(\hat{A}_{b,k,j}-A_{b,k,j}\right)^2}{D_a \sum_{b,k}M_{b,k}}\]
 
 where:
 
@@ -834,11 +785,7 @@ necessarily aligning its gripper with the simulated cube.
 
 This is a domain-shift problem:
 
-\[
-p_{\text{training}}(I,S,A)
-\neq
-p_{\text{simulation}}(I,S,A)
-\]
+\[p_{\text{training}}(I,S,A)\neqp_{\text{simulation}}(I,S,A)\]
 
 Once the model makes an incorrect move, the next observation may be unlike
 anything present in the demonstrations. Subsequent errors can compound.

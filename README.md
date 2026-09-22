@@ -17,8 +17,7 @@ flowchart TD
 ```
 ## Current research status
 
-The project currently supports an end-to-end simulation and learned-policy
-pipeline:
+The project supports an end-to-end simulation and learned-policy pipeline:
 
 ```text
 Isaac Sim camera and joint state
@@ -30,103 +29,166 @@ Isaac Sim camera and joint state
        C++ safety controller
                 ↓
         Simulated SO-101 arm
+```
 
-````
+Completed components:
 
-- SO-101 USD loads and runs in Isaac Sim.
-- Joint state and joint command bridges are working.
-- The ROS 2 action safety controller is working.
-- Position, velocity, and effort command modes are represented by the controller interface.
+- The SO-101 USD loads and runs in Isaac Sim.
+- The scene includes a floor, table, lighting, cube, and overhead RGB camera.
+- ROS 2 joint-state, joint-command, and camera bridges are working.
+- The C++ safety controller validates and forwards policy actions.
+- Position, velocity, and effort command interfaces are implemented.
 - Position control is the current default and has been tested on all six joints.
 - Scripted joint, pose-sequence, and pose-tuning policies are available.
-- The scene includes a floor, table, lighting, a cube, and an overhead RGB camera.
-- The current i9-13900K, RTX 4070, 32 GB DDR5 system is sufficient for initial development.
-- Dataset recording, C++ kinematics, SpaceMouse teleoperation, and learned VLA policies are the
-  next development stages.
+- The reusable C++ serial-chain robot model is implemented.
+- Forward and inverse kinematics are implemented.
+- The custom PyTorch neural-network primitives and transformer are implemented.
+- The `SmallVLA` multimodal action-chunking model is implemented.
+- LeRobot dataset adaptation, normalization, and statistics are implemented.
+- Training, checkpointing, offline evaluation, and CUDA inference are working.
+- The VLA checkpoint is connected to the SO-101 simulation through ROS 2.
 
+The initial checkpoint was trained for ten epochs using a public LeRobot dataset
+containing 50 SO-100 follower episodes and 11,939 frames.
 
-Python owns high-level planning, dataset processing, model training, and VLA inference. C++
-owns forward and inverse kinematics, trajectory generation, limits, validation, and the
-time-sensitive robot command path.
+Held-out evaluation:
 
-A policy that predicts joint positions can publish directly to `/so101/policy_action`. A policy
-or SpaceMouse node that produces Cartesian targets sends them through the C++ kinematics layer
-first.
+| Metric | Result |
+|---|---:|
+| Validation samples | 1,193 |
+| Mean absolute error | 0.053084 rad |
+| Mean absolute error | 3.042 degrees |
+| Mean squared error | 0.007896 |
+| Maximum error | 1.274848 rad |
 
-The policy layer does not need to implement a PID controller. In position and velocity mode,
-the articulation drives inside Isaac Sim perform the low-level closed-loop control. A learned
-policy should produce targets; the safety controller validates those targets before forwarding
-them to the simulator.
+The checkpoint produces recognizable pick-and-place-like behavior in the
+simulation, confirming that the complete inference pipeline operates. It does
+not yet complete the simulated task reliably.
 
-Direct effort control is different. It requires appropriate dynamics handling, zero or suitably
-configured drive stiffness and damping, gravity compensation, effort limits, and a higher-rate
-control loop. It is not the recommended starting point for the VLA pipeline.
+The primary limitation is domain mismatch between the SO-100 demonstration
+dataset and the SO-101 Isaac Sim environment. Important differences include
+joint calibration, camera viewpoint, object placement, scene appearance, and
+the closed-loop states produced by the policy.
+
+Current development priorities are safe inference gating, kinematics
+validation, synchronized episode recording, SO-101 simulation demonstrations,
+and training on data matched to the target environment.
+
+## Software responsibilities
+
+Python owns:
+
+- Scripted and learned policies
+- Dataset processing
+- Model training and evaluation
+- Checkpoint loading
+- VLA inference
+- High-level planning
+
+C++ owns:
+
+- Forward and inverse kinematics
+- Joint-limit enforcement
+- Command validation
+- Timeouts and safe-hold behavior
+- The time-sensitive robot command path
+
+A joint-space policy publishes targets to:
+
+```text
+/so101/policy_action
+```
+
+A policy or teleoperation node producing Cartesian targets sends them through
+the C++ kinematics layer before reaching the same joint-action interface.
+
+The policy does not need to implement a PID controller. In position and
+velocity modes, the Isaac Sim articulation drives perform low-level closed-loop
+control. The learned policy produces targets, while the safety controller
+validates those targets before forwarding them to the simulator.
+
+Direct effort control is different. It requires appropriate dynamics handling,
+suitably configured drive stiffness and damping, gravity compensation, effort
+limits, and a higher-rate control loop. It is not the recommended starting
+point for the VLA pipeline.
 
 ## Project layout
 
 ```text
-my_robotics_project/
+so101-vla-robotics/
 ├── assets/
-│   └── robots/so101/
-│       ├── so101_new_calib_base.usd
-│       └── so101_new_calib_physics.usd
-├── simulation/
-│   └── isaac_sim/
-│       ├── run_so101_sim.py
-│       ├── so101_scene.py
-│       ├── ros2_joint_bridge.py
-│       └── ros2_camera_bridge.py
-├── ros2_ws/
-│   ├── src/
-│   │   ├── so101_interfaces/
-│   │   │   ├── msg/CartesianCommand.msg
-│   │   │   └── srv/SolveIK.srv
-│   │   ├── so101_kinematics/
-│   │   │   ├── config/kinematics.yaml
-│   │   │   ├── include/so101_kinematics/
-│   │   │   └── src/
-│   │   └── so101_control/
-│   │       ├── config/controller.yaml
-│   │       ├── include/so101_control/robot_constants.hpp
-│   │       ├── launch/controller.launch.py
-│   │       ├── src/action_controller_node.cpp
-│   │       ├── CMakeLists.txt
-│   │       └── package.xml
-│   ├── build/
-│   ├── install/
-│   └── log/
+│   └── robots/
+│       ├── README.md
+│       └── so101/
+│           ├── so101_new_calib.usd
+│           ├── so101_new_calib_base.usd
+│           └── so101_new_calib_physics.usd
+├── datasets/
+│   ├── README.md
+│   ├── processed/
+│   └── raw/
+├── models/
+│   ├── checkpoints/
+│   └── exported/
 ├── policies/
+│   ├── README.md
 │   ├── setup.py
 │   ├── tests/
 │   └── so101_policies/
-│       ├── __init__.py
-│       ├── constants.py
-│       ├── config/poses.yaml
 │       ├── common/
-│       │   ├── __init__.py
-│       │   └── trajectory.py
+│       ├── config/
+│       ├── data/
+│       ├── evaluation/
+│       ├── inference/
 │       ├── models/
+│       │   ├── action/
+│       │   ├── language/
 │       │   ├── primitives/
 │       │   ├── transformer/
 │       │   ├── vision/
-│       │   ├── language/
-│       │   ├── action/
 │       │   └── vla/
+│       ├── scripted/
 │       ├── training/
-│       ├── evaluation/
-│       ├── inference/
-│       ├── teleoperation/
-│       └── scripted/
-│           ├── __init__.py
-│           ├── joint_test_policy.py
-│           ├── pose_sequence_policy.py
-│           └── pose_tuning_policy.py
-├── datasets/
+│       ├── constants.py
+│       └── __init__.py
+├── ros2_ws/
+│   ├── README.md
+│   └── src/
+│       ├── common/
+│       │   └── robot_kinematics/
+│       └── robots/
+│           └── so101/
+│               ├── so101_bringup/
+│               ├── so101_control/
+│               └── so101_description/
+├── simulation/
+│   └── isaac_sim/
+│       ├── README.md
+│       ├── ros2_camera_bridge.py
+│       ├── ros2_joint_bridge.py
+│       ├── run_so101_sim.py
+│       └── so101_scene.py
 └── README.md
 ```
 
-The `build`, `install`, and `log` directories belong only under `ros2_ws`. They are generated
-by `colcon` and should normally be ignored by Git.
+The following directories are generated locally and excluded from Git:
+
+```text
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+datasets/raw/*
+datasets/processed/*
+models/checkpoints/*
+models/exported/*
+```
+
+## Technical documentation
+
+- [Policy package, training, inference, and CUDA](policies/README.md)
+- [Detailed SmallVLA implementation](policies/so101_policies/models/vla/README.md)
+- [ROS 2 workspace](ros2_ws/README.md)
+- [Isaac Sim integration](simulation/isaac_sim/README.md)
 
 ## Robot joints
 
