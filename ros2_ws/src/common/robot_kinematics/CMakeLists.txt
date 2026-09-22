@@ -68,10 +68,6 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
-install(
-  DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}
-)
 
 ament_export_targets(
   export_robot_kinematics
