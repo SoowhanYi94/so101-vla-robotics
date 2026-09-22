@@ -1,3 +1,4 @@
+
 # SO-101 VLA Robotics Project
 
 Simulation-first development environment for an SO-101 follower arm, with a path toward
@@ -30,7 +31,7 @@ Isaac Sim camera and joint state
                 ↓
         Simulated SO-101 arm
 ```
-
+[Screencast from 09-21-2026 06:14:47 PM.webm](https://github.com/user-attachments/assets/ef09e9b0-5ec7-4495-a1e8-514689388f0a)
 Completed components:
 
 - The SO-101 USD loads and runs in Isaac Sim.
